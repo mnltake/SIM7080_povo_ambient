@@ -41,17 +41,17 @@ void setup() {
   while (!modem.waitForNetwork()) SerialMon.print(".");
   SerialMon.println(F(" Ok."));
 
-//  SerialMon.print(F("gprsConnect(povo.jp)"));
-//  modem.gprsConnect("povo.jp", "", "");
-//  SerialMon.println(F(" done."));
-//
-//  SerialMon.print(F("isNetworkConnected()"));
-//  while (!modem.isNetworkConnected()) SerialMon.print(".");
-//  SerialMon.println(F(" Ok."));
-//
-//  SerialMon.print(F("My IP addr: "));
-//  IPAddress ipaddr = modem.localIP();
-//  SerialMon.println(ipaddr);
+  SerialMon.print(F("gprsConnect(povo.jp)"));
+  modem.gprsConnect("povo.jp", "", "");
+  SerialMon.println(F(" done."));
+
+  SerialMon.print(F("isNetworkConnected()"));
+  while (!modem.isNetworkConnected()) SerialMon.print(".");
+  SerialMon.println(F(" Ok."));
+
+  SerialMon.print(F("My IP addr: "));
+  IPAddress ipaddr = modem.localIP();
+  SerialMon.println(ipaddr);
 
   ambient.begin(channelId, writeKey, &client); 
 }
