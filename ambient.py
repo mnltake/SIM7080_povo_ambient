@@ -1,89 +1,68 @@
+#!/usr/bin/python3
+
 """
-Raspberry Pi Pico (MicroPython) exercise:
+Raspberry Pi  (Python3) exercise:
 work with SIM7080G Cat-M/NBIoT Module
 """
-import machine
-import utime
+import RPi.GPIO as GPIO
+import serial
+import time
+
+Pico_SIM7080G  = serial.Serial('/dev/ttyAMA0',115200)
+Pico_SIM7080G .flushInput()
+
 
 apn ="povo.jp"
 writeKey = "***your writeKey***"
 readKey = "***your readKey***"
 channelID  = 12345 #your channelID
 
-# uart setting
-uart_port = 0
-uart_baute = 115200
-Pico_SIM7080G = machine.UART(uart_port, uart_baute)
 
-# LED indicator on Raspberry Pi Pico
-led_pin = 25  # onboard led
-led_onboard = machine.Pin(led_pin, machine.Pin.OUT)
 
 # HTTP Get Post Parameter
 http_get_server = ['http://ambidata.io', 'api/v2/channels/' +str(channelID) +'/data?readKey=' +str(readKey)]
 http_post_server = ['http://ambidata.io', 'api/v2/channels/' + str(channelID) + '/data']
 
-def led_blink():
-    for i in range(1, 3):
-        led_onboard.value(1)
-        utime.sleep(1)
-        led_onboard.value(0)
-        utime.sleep(1)
-    led_onboard.value(0)
+
 
 # Send AT command
-def send_at(cmd, back, timeout=1500):
-    rec_buff = b''
-    Pico_SIM7080G.write((cmd + '\r\n').encode())
-    prvmills = utime.ticks_ms()
-    while (utime.ticks_ms() - prvmills) < timeout:
-        if Pico_SIM7080G.any():
-            rec_buff = b"".join([rec_buff, Pico_SIM7080G.read(1)])
-    if rec_buff != '':
-        if back not in rec_buff.decode():
-            if 'ERROR' in rec_buff.decode():
-                print(cmd + ' back:\t' + rec_buff.decode())
-                return 0
-            else:
-                # Resend cmd
-                rec_buff = b''
-                rec_buff = send_at_wait_resp(cmd, back, timeout)
-                if back not in rec_buff.decode():
-                    print(cmd + ' back:\t' + rec_buff.decode())
-                    return 0
-                else:
-                    return 1
-        else:
-            #print(rec_buff.decode())
-            return 1
-    else:
-        print(cmd + ' no responce\n')
-        # Resend cmd
-        rec_buff = send_at_wait_resp(cmd, back, timeout)
-        if back not in rec_buff.decode():
-            print(cmd + ' back:\t' + rec_buff.decode())
-            return 0
-        else:
-            return 1
+def send_at(command, back, timeout=1500):
+	rec_buff = ''
+	Pico_SIM7080G.write((command+'\r\n').encode())
+	time.sleep(timeout*0.001)
+	if Pico_SIM7080G.inWaiting():
+		time.sleep(0.1 )
+		rec_buff = Pico_SIM7080G.read(Pico_SIM7080G.inWaiting())
+	if rec_buff != '':
+		if back not in rec_buff.decode():
+			print(command + ' ERROR')
+			print(command + ' back:\t' + rec_buff.decode())
+			return 0
+		else:
+			print(rec_buff.decode())
+			return 1
+	else:
+		print(command + ' no responce')
 
 
 # Send AT command and return response information
-def send_at_wait_resp(cmd, back, timeout=2000):
+def send_at_wait_resp(command, back, timeout=2000):
     rec_buff = b''
-    Pico_SIM7080G.write((cmd + '\r\n').encode())
-    prvmills = utime.ticks_ms()
-    while (utime.ticks_ms() - prvmills) < timeout:
-        if Pico_SIM7080G.any():
-            rec_buff = b"".join([rec_buff, Pico_SIM7080G.read(1)])
+    Pico_SIM7080G.write((command + '\r\n').encode())
+    time.sleep(timeout*0.001)
+    if Pico_SIM7080G.inWaiting():
+        time.sleep(0.1 )
+        rec_buff = Pico_SIM7080G.read(Pico_SIM7080G.inWaiting())
     if rec_buff != '':
         if back not in rec_buff.decode():
-            print(cmd + ' back:\t' + rec_buff.decode())
+            print(command + ' ERROR')
+            print(command + ' back:\t' + rec_buff.decode())
+            return rec_buff
         else:
-            pass
-            #print(rec_buff.decode())
+            print(rec_buff.decode())
+            return rec_buff
     else:
-        print(cmd + ' no responce')
-    # print("Response information is: ", rec_buff)
+        print(command + ' no responce')
     return rec_buff
 
 
@@ -91,16 +70,16 @@ def send_at_wait_resp(cmd, back, timeout=2000):
 def check_start():
     # simcom module uart may be fool,so it is better to send much times when it starts.
     send_at("AT", "OK")
-    utime.sleep(1)
+    time.sleep(1)
     for i in range(1, 4):
         if send_at("AT", "OK") == 1:
             print('------SIM7080G is ready------\r\n')
             send_at("ATE1", "OK")
             break
         else:
-            module_power()
+
             print('------SIM7080G is starting up, please wait------\r\n')
-            utime.sleep(5)
+            time.sleep(5)
 
 
 def set_network():
@@ -109,7 +88,7 @@ def set_network():
     send_at("AT+CNMP=38", "OK")  # Select LTE mode
     send_at("AT+CMNB=1", "OK")  # Select Cat-M mode
     send_at("AT+CFUN=1", "OK")
-    utime.sleep(5)
+    time.sleep(5)
 
 
 # Check the network status
@@ -122,7 +101,7 @@ def check_network():
             break
         else:
             print('------SIM7080G is offline, please wait...------\r\n')
-            utime.sleep(5)
+            time.sleep(5)
             continue
     send_at("AT+CSQ", "OK")
     send_at("AT+CPSI?", "OK")
@@ -233,7 +212,7 @@ def http_post(http_post_msg):
 
 
 # SIM7080G main program
-led_blink()
+
 check_start()
 set_network()
 check_network()
@@ -241,6 +220,6 @@ d1 = 0
 while True:
     msg = '{"writeKey":"' + writeKey + '","d1":"' +str(d1)+ '"}'
     http_post(msg)
-    utime.sleep(10)
+    time.sleep(10)
     http_get(n=1)
     d1+=1
