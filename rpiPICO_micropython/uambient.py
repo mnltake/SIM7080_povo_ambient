@@ -47,7 +47,7 @@ def send_at(cmd, back, timeout=1500):
     if rec_buff != '':
         if back not in rec_buff.decode():
             if 'ERROR' in rec_buff.decode():
-                print(cmd + ' back:\t' + rec_buff.decode())
+                print(cmd + 'back:\t' + rec_buff.decode())
                 return 0
             else:
                 # Resend cmd
@@ -93,10 +93,14 @@ def send_at_wait_resp(cmd, back, timeout=2000):
     # print("Response information is: ", rec_buff)
     return rec_buff
 
+def modem_flush():
+    while modem.any():
+        modem.read(1)
 
 # Module startup detection
 def check_start():
     # simcom module uart may be fool,so it is better to send much times when it starts.
+    modem_flush()
     send_at("AT", "OK")
     utime.sleep(1)
     for i in range(1, 4):
