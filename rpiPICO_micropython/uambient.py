@@ -6,6 +6,8 @@ import machine
 import utime
 
 apn ="povo.jp"
+username=""
+password=""
 writeKey = "***your writeKey***"
 readKey = "***your readKey***"
 channelID  = 12345 #your channelID
@@ -22,6 +24,9 @@ led_onboard = machine.Pin(led_pin, machine.Pin.OUT)
 # HTTP Get Post Parameter
 http_get_server = ['http://ambidata.io', 'api/v2/channels/' +str(channelID) +'/data?readKey=' +str(readKey)]
 http_post_server = ['http://ambidata.io', 'api/v2/channels/' + str(channelID) + '/data']
+
+# debug
+debug=False
 
 def led_blink():
     for i in range(1, 3):
@@ -54,7 +59,8 @@ def send_at(cmd, back, timeout=1500):
                 else:
                     return 1
         else:
-            #print(rec_buff.decode())
+            if debug:
+                print(rec_buff.decode())
             return 1
     else:
         print(cmd + ' no responce\n')
@@ -79,8 +85,9 @@ def send_at_wait_resp(cmd, back, timeout=2000):
         if back not in rec_buff.decode():
             print(cmd + ' back:\t' + rec_buff.decode())
         else:
-            pass
-            #print(rec_buff.decode())
+            if debug:
+                print(rec_buff.decode())
+            
     else:
         print(cmd + ' no responce')
     # print("Response information is: ", rec_buff)
@@ -132,7 +139,10 @@ def check_network():
     # print(getapn[1])
     #getapn1 = get_resp_info[get_resp_info.find('\"')+1:get_resp_info.rfind('\"')]
     # print(getapn1)
-    send_at("AT+CNCFG=0,1,\""+apn+"\"", "OK")
+    if username :
+        send_at('AT+CNCFG=0,1,"'+apn+'","'+username+'","'+password+'"', "OK")
+    else :
+        send_at('AT+CNCFG=0,1,"'+apn+'"', "OK")
     if send_at('AT+CNACT=0,1', 'ACTIVE'):
         print("Network activation is successful\n")
     else:
@@ -148,7 +158,7 @@ def at_test():
             send_at(command_input, 'OK', 2000)
         except KeyboardInterrupt:
             print('\n------Exit AT Command Test!------\r\n')
-            module_power()
+
             print("------The module is power off!------\n")
             break
 
@@ -184,9 +194,11 @@ def http_get(n=1):
         try:
             get_pack_len = int(resp[resp.rfind(',')+1:-5])
             if get_pack_len > 0:
-                rcvdata = send_at_wait_resp('AT+SHREAD=0,'+str(get_pack_len), 'OK', 5000)
-                #send_at('AT+SHDISC', 'OK')
-                print(rcvdata.decode())
+                resp = (send_at_wait_resp('AT+SHREAD=0,'+str(get_pack_len), 'OK', 5000)).decode()
+                get_json=resp[resp.rfind('[')+1:resp.rfind(']')]
+                #self.send_at('AT+SHDISC', 'OK')
+                #print(f"get json:{get_json}\n")
+                return get_json
             else:
                 print("HTTP Get failed!\n")
         except ValueError:
@@ -207,21 +219,15 @@ def http_post(http_post_msg):
         set_http_content()
         send_at('AT+SHCPARA', 'OK',100)
         if send_at('AT+SHBOD=' + str(bodylen) +',10000', '>', 100) :
-            print(http_post_msg)
+            #print(http_post_msg)
             send_at(http_post_msg, 'OK',1000)
             #send_at('AT+SHBOD?','OK')
             resp = str(send_at_wait_resp('AT+SHREQ=\"/'+http_post_server[1]+'\",3','OK', 8000))
             #print("resp is :", resp)
             try:
-                get_pack = int(resp[resp.rfind(',')+1:-5])
-                #print(get_pack)
-                if get_pack > 0:
-                    send_at_wait_resp('AT+SHREAD=0,' + str(get_pack), 'OK', 3000)
-                    send_at('AT+SHDISC', 'OK')
-                else:
-                    
-                    send_at('AT+SHDISC', 'OK')
-                    
+                get_status = int(resp[resp.rfind(',')-3:resp.rfind(',')])
+                print(f"status :{get_status}\n")
+                return get_status
             except ValueError:
                 print("ValueError!\n")
 
@@ -238,9 +244,11 @@ check_start()
 set_network()
 check_network()
 d1 = 0
-while True:
+while True :
     msg = '{"writeKey":"' + writeKey + '","d1":"' +str(d1)+ '"}'
+    print(f"post json :{msg}")
     http_post(msg)
-    utime.sleep(10)
-    http_get(n=1)
+    utime.sleep(5)
     d1+=1
+    get_json=http_get(d1)
+    print(f"get json:{get_json}\n")
