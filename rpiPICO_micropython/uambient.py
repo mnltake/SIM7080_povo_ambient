@@ -15,7 +15,7 @@ channelID  = 12345 #your channelID
 # uart setting
 uart_port = 0
 uart_baute = 115200
-Pico_SIM7080G = machine.UART(uart_port, uart_baute)
+modem = machine.UART(uart_port, uart_baute)
 
 # LED indicator on Raspberry Pi Pico
 led_pin = 25  # onboard led
@@ -39,11 +39,11 @@ def led_blink():
 # Send AT command
 def send_at(cmd, back, timeout=1500):
     rec_buff = b''
-    Pico_SIM7080G.write((cmd + '\r\n').encode())
+    modem.write((cmd + '\r\n').encode())
     prvmills = utime.ticks_ms()
     while (utime.ticks_ms() - prvmills) < timeout:
-        if Pico_SIM7080G.any():
-            rec_buff = b"".join([rec_buff, Pico_SIM7080G.read(1)])
+        if modem.any():
+            rec_buff = b"".join([rec_buff, modem.read(1)])
     if rec_buff != '':
         if back not in rec_buff.decode():
             if 'ERROR' in rec_buff.decode():
@@ -76,11 +76,11 @@ def send_at(cmd, back, timeout=1500):
 # Send AT command and return response information
 def send_at_wait_resp(cmd, back, timeout=2000):
     rec_buff = b''
-    Pico_SIM7080G.write((cmd + '\r\n').encode())
+    modem.write((cmd + '\r\n').encode())
     prvmills = utime.ticks_ms()
     while (utime.ticks_ms() - prvmills) < timeout:
-        if Pico_SIM7080G.any():
-            rec_buff = b"".join([rec_buff, Pico_SIM7080G.read(1)])
+        if modem.any():
+            rec_buff = b"".join([rec_buff, modem.read(1)])
     if rec_buff != '':
         if back not in rec_buff.decode():
             print(cmd + ' back:\t' + rec_buff.decode())

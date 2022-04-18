@@ -5,8 +5,6 @@ Raspberry Pi  (Python3) exercise:
 work with SIM7080G Cat-M/NBIoT Module
 """
 
-from distutils.log import debug
-
 
 class SIM7080G_HTTP:
     
@@ -16,8 +14,8 @@ class SIM7080G_HTTP:
         self.time=time
         self.port=port
         self.baudrate=baudrate
-        self.Pico_SIM7080G  = serial.Serial(self.port, self.baudrate)
-        self.Pico_SIM7080G .flushInput()
+        self.modem  = serial.Serial(self.port, self.baudrate)
+        self.modem .flushInput()
         self.debug=debug
     
     def set_apn(self,apn,username="", password=""):
@@ -38,11 +36,11 @@ class SIM7080G_HTTP:
     # Send AT command
     def send_at(self,command, back, timeout=1.5):
         rec_buff = ''
-        self.Pico_SIM7080G.write((command+'\r\n').encode())
+        self.modem.write((command+'\r\n').encode())
         self.time.sleep(timeout)
-        if self.Pico_SIM7080G.inWaiting():
+        if self.modem.inWaiting():
             self.time.sleep(0.1 )
-            rec_buff = self.Pico_SIM7080G.read(self.Pico_SIM7080G.inWaiting())
+            rec_buff = self.modem.read(self.modem.inWaiting())
         if rec_buff != '':
             if back not in rec_buff.decode():
                 print(command + ' ERROR')
@@ -60,11 +58,11 @@ class SIM7080G_HTTP:
     # Send AT command and return response information
     def send_at_wait_resp(self,command, back, timeout=1.5):
         rec_buff = b''
-        self.Pico_SIM7080G.write((command + '\r\n').encode())
+        self.modem.write((command + '\r\n').encode())
         self.time.sleep(timeout)
-        if self.Pico_SIM7080G.inWaiting():
+        if self.modem.inWaiting():
             self.time.sleep(0.1 )
-            rec_buff = self.Pico_SIM7080G.read(self.Pico_SIM7080G.inWaiting())
+            rec_buff = self.modem.read(self.modem.inWaiting())
         if rec_buff != '':
             if back not in rec_buff.decode():
                 if self.debug:
